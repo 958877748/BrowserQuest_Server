@@ -788,7 +788,7 @@ var main;
                         tileIndex += 1;
                     }
                 }
-                console.log("Collision grid generated.");
+                //console.log("生成碰撞网格。");
             }
         }
         isOutOfBounds(x, y) {

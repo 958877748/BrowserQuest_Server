@@ -9,7 +9,7 @@
             "request": "launch",
             "name": "启动node服务器",
             "program": "${workspaceFolder}/dist/app.js",
-            // "preLaunchTask": "运行前编译TS"
+            "preLaunchTask": "运行前编译TS"
         }
     ]
 }

@@ -150,7 +150,7 @@ namespace main {
             })
 
             http.listen(self.port, function () {
-                console.log('监听 on *:' + self.port)
+                console.log('监听端口:' + self.port)
             })
         }
 
