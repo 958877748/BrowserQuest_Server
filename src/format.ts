@@ -1,5 +1,15 @@
 namespace main{
     export class FormatChecker{
+        private static _inst:FormatChecker
+        static Inst():FormatChecker{
+            if(this._inst){
+                
+            }else{
+                this._inst = new FormatChecker()
+            }
+            return this._inst
+        }
+
         formats: any[];
         constructor(){
             this.formats = [];
@@ -49,8 +59,7 @@ namespace main{
             }
         }
     }
-    var checker = new FormatChecker;
     export function check(msg:any){
-        return checker.check(msg)
+        return FormatChecker.Inst().check(msg)
     }
 }

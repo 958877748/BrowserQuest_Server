@@ -116,16 +116,17 @@ namespace main {
         host: string
         io: any
         status_callback: any
-        constructor(host: string, port: number) {
-            super(port)
+        constructor(IP: string, 端口: number) {
+            super(端口)
             let self = this
-            self.host = host
-            self.port = port
+            self.host = IP
+            self.port = 端口
 
             // var app = require('express')()
             // var http = require('http').Server(app)
             // self.io = require('socket.io')(http)
-            self.io = socketIO(http.Server(app))
+            let {http,io} = getIO()
+            self.io = io
 
             self.io.on('connection', function (connection: any) {
                 console.log('一个用户连接上了')
@@ -148,8 +149,8 @@ namespace main {
 
             })
 
-            http.listen(port, function () {
-                console.log('listening on *:' + port)
+            http.listen(self.port, function () {
+                console.log('监听 on *:' + self.port)
             })
         }
 

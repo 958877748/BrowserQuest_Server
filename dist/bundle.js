@@ -322,6 +322,14 @@ var main;
                 this.formats[main.Types.Messages.OPEN] = ['n'],
                 this.formats[main.Types.Messages.CHECK] = ['n'];
         }
+        static Inst() {
+            if (this._inst) {
+            }
+            else {
+                this._inst = new FormatChecker();
+            }
+            return this._inst;
+        }
         check(msg) {
             var message = msg.slice(0), type = message[0], format = this.formats[type];
             message.shift();
@@ -350,9 +358,8 @@ var main;
         }
     }
     main.FormatChecker = FormatChecker;
-    var checker = new FormatChecker;
     function check(msg) {
-        return checker.check(msg);
+        return FormatChecker.Inst().check(msg);
     }
     main.check = check;
 })(main || (main = {}));
@@ -654,26 +661,58 @@ var main;
 var main;
 (function (main_1) {
     function main() {
-        let 服务器配置文件路径 = 'config.json';
+        let 服务器配置文件路径 = 'dist/config.json';
         fs.readFile(服务器配置文件路径, 'utf8', function (异常, JSON数据) {
             if (异常) {
                 console.error("无法打开配置文件:", 异常.path);
             }
             else {
-                let 服务器配置 = JSON.parse(JSON数据);
+                服务器配置加载完成(JSON.parse(JSON数据));
             }
         });
     }
     main_1.main = main;
-})(main || (main = {}));
-function 获取世界分布(worlds) {
-    let 分布 = [];
-    for (let index = 0; index < worlds.length; index++) {
-        const world = worlds[index];
-        分布.push(world.playerCount);
+    function getWorldDistribution(worlds) {
+        var distribution = [];
+        _.each(worlds, function (world) {
+            distribution.push(world.playerCount);
+        });
+        return distribution;
     }
-    return 分布;
-}
+    function 服务器配置加载完成(服务器配置) {
+        let 服务器 = new main_1.socketIO服务器(服务器配置.host, 服务器配置.port);
+        let worlds = [];
+        let lastTotalPlayers = 0;
+        服务器.监听连接(function (connection) {
+            var world, // the one in which the player will be spawned
+            connect = function () {
+                if (world) {
+                    world.connect_callback(new main_1.Player(connection, world));
+                }
+            };
+            // simply fill each world sequentially until they are full
+            world = _.detect(worlds, function (world) {
+                return world.playerCount < 服务器配置.nb_players_per_world;
+            });
+            world.updatePopulation();
+            connect();
+        });
+        服务器.onError(function () {
+            console.error(Array.prototype.join.call(arguments, ", "));
+        });
+        _.each(_.range(服务器配置.nb_worlds), function (i) {
+            var world = new main_1.世界服务器('world' + (i + 1), 服务器配置.nb_players_per_world, 服务器);
+            world.run(服务器配置.map_filepath);
+            worlds.push(world);
+        });
+        服务器.onRequestStatus(function () {
+            return JSON.stringify(getWorldDistribution(worlds));
+        });
+        process.on('uncaughtException', function (e) {
+            console.error('uncaughtException: ' + e);
+        });
+    }
+})(main || (main = {}));
 //将main命名空间引用置于exports上
 var exports;
 exports.main = main;
@@ -1064,69 +1103,6 @@ var main;
         }
         Messages.Blink = Blink;
     })(Messages = main.Messages || (main.Messages = {}));
-})(main || (main = {}));
-var main;
-(function (main) {
-    class Metrics {
-        constructor(config) {
-            var self = this;
-            this.config = config;
-            this.client = new memcache.Client(config.memcached_port, config.memcached_host);
-            this.client.connect();
-            this.isReady = false;
-            this.client.on('connect', function () {
-                console.log("Metrics enabled: memcached client connected to " + config.memcached_host + ":" + config.memcached_port);
-                self.isReady = true;
-                if (self.ready_callback) {
-                    self.ready_callback();
-                }
-            });
-        }
-        ready(callback) {
-            this.ready_callback = callback;
-        }
-        updatePlayerCounters(worlds, updatedCallback) {
-            var self = this, config = this.config, numServers = _.size(config.game_servers), playerCount = _.reduce(worlds, function (sum, world) { return sum + world.playerCount; }, 0);
-            if (this.isReady) {
-                // Set the number of players on this server
-                this.client.set('player_count_' + config.server_name, playerCount, function () {
-                    var total_players = 0;
-                    // Recalculate the total number of players and set it
-                    _.each(config.game_servers, function (server) {
-                        self.client.get('player_count_' + server.name, function (error, result) {
-                            var count = result ? parseInt(result) : 0;
-                            total_players += count;
-                            numServers -= 1;
-                            if (numServers === 0) {
-                                self.client.set('total_players', total_players, function () {
-                                    if (updatedCallback) {
-                                        updatedCallback(total_players);
-                                    }
-                                });
-                            }
-                        });
-                    });
-                });
-            }
-            else {
-                console.log("Memcached client not connected");
-            }
-        }
-        updateWorldDistribution(worlds) {
-            this.client.set('world_distribution_' + this.config.server_name, worlds);
-        }
-        getOpenWorldCount(callback) {
-            this.client.get('world_count_' + this.config.server_name, function (error, result) {
-                callback(result);
-            });
-        }
-        getTotalPlayers(callback) {
-            this.client.get('total_players', function (error, result) {
-                callback(result);
-            });
-        }
-    }
-    main.Metrics = Metrics;
 })(main || (main = {}));
 var main;
 (function (main) {
@@ -2660,15 +2636,16 @@ var main;
         }
     }
     class socketIO服务器 extends 服务器 {
-        constructor(host, port) {
-            super(port);
+        constructor(IP, 端口) {
+            super(端口);
             let self = this;
-            self.host = host;
-            self.port = port;
+            self.host = IP;
+            self.port = 端口;
             // var app = require('express')()
             // var http = require('http').Server(app)
             // self.io = require('socket.io')(http)
-            self.io = socketIO(http.Server(app));
+            let { http, io } = getIO();
+            self.io = io;
             self.io.on('connection', function (connection) {
                 console.log('一个用户连接上了');
                 connection.remoteAddress = connection.handshake.address.address;
@@ -2682,8 +2659,8 @@ var main;
                 console.log(err.stack);
                 self.error_callback();
             });
-            http.listen(port, function () {
-                console.log('listening on *:' + port);
+            http.listen(self.port, function () {
+                console.log('监听 on *:' + self.port);
             });
         }
         _createId() {
