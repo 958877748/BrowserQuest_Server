@@ -5,7 +5,7 @@
 	"compilerOptions": {
 		"module": "amd",
 		//合并输出到单个文件
-		"outFile": "bin/bundle.js",
+		"outFile": "dist/bundle.js",
 		//指定 ECMAScript 目标版本
 		"target": "es6",
 		//生成相应的声明文件 .d.ts, 作用:写代码时有提示

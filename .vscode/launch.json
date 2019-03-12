@@ -7,14 +7,9 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program",
-            "runtimeArgs": [
-                "-r",
-                "ts-node/register"
-            ],
-            "args": [
-                "${workspaceFolder}/src/main.ts"
-            ]
+            "name": "启动node服务器",
+            "program": "${workspaceFolder}/dist/app.js",
+            "preLaunchTask": "运行前编译TS"
         }
     ]
 }
