@@ -1,0 +1,27 @@
+{
+	"include": [
+		"src/**/*.ts",
+	],
+	"compilerOptions": {
+		"module": "amd",
+		//合并输出到单个文件
+		"outFile": "bin/bundle.js",
+		//指定 ECMAScript 目标版本
+		"target": "es6",
+		//生成相应的声明文件 .d.ts, 作用:写代码时有提示
+		"declaration": false,
+		//生成相应的文件 .map, 作用:调试打断点指向ts文件
+		"sourceMap": true,
+		//显示诊断信息?
+		"diagnostics": true,
+		//在输出文件的开始处发出 UTF-8 字节顺序标记 (BOM)
+		"emitBOM": false,
+		//删除所有注释, 但复制右侧标题注释开始时除外。
+		"removeComments":false,
+		//报告未使用的局部变量的错误。
+		"noUnusedLocals": false,
+		"typeRoots": [
+            "ts提示"
+		]
+	}
+}

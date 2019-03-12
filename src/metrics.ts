@@ -4,7 +4,11 @@ var cls = require("./lib/class"),
 /**
  * 指标
  */
-export default class Metrics{
+export class Metrics{
+    config: any;
+    client: any;
+    isReady: boolean;
+    ready_callback: any;
     constructor(config){
         var self = this;
         
@@ -15,7 +19,7 @@ export default class Metrics{
         this.isReady = false;
         
         this.client.on('connect', function() {
-            log.info("Metrics enabled: memcached client connected to "+config.memcached_host+":"+config.memcached_port);
+            console.log("Metrics enabled: memcached client connected to "+config.memcached_host+":"+config.memcached_port);
             self.isReady = true;
             if(self.ready_callback) {
                 self.ready_callback();
@@ -56,7 +60,7 @@ export default class Metrics{
                 });
             });
         } else {
-            log.error("Memcached client not connected");
+            console.log("Memcached client not connected");
         }
     }
     

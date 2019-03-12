@@ -1,7 +1,6 @@
 
-var fs = require('fs'),
-    Metrics = require('./metrics');
- 
+//导入node的fs模块
+var fs = require('fs');
 
 function main(config) {
     var ws = require("./ws"),

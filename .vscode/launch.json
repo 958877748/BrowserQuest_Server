@@ -5,27 +5,15 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "edge",
-            "request": "launch",
-            "name": "Launch Edge",
-            "url": "${workspaceFolder}/client/index.html",
-            "webRoot": "${workspaceFolder}"
-        },
-        {
             "type": "node",
             "request": "launch",
-            "name": "服务器",
-            "program": "${workspaceFolder}/server/js/main.js"
-        },
-        {
-            "type": "chrome",
-            "request": "launch",
-            "name": "客户端",
-            "webRoot": "${workspaceFolder}",
-            "file": "${workspaceFolder}/client/index.html",
+            "name": "Launch Program",
             "runtimeArgs": [
-				//解决文件跨域问题
-                "--allow-file-access-from-files"
+                "-r",
+                "ts-node/register"
+            ],
+            "args": [
+                "${workspaceFolder}/src/main.ts"
             ]
         }
     ]
