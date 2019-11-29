@@ -167,6 +167,7 @@ var main;
         setTarget(entity) {
             this.target = entity.id;
         }
+        /** 清除当前目标 */
         clearTarget() {
             this.target = null;
         }
@@ -193,6 +194,7 @@ var main;
                 console.log(this.id + " REMOVED ATTACKER " + entity.id);
             }
         }
+        /** 遍历攻击者 */
         forEachAttacker(callback) {
             for (var id in this.attackers) {
                 callback(this.attackers[id]);
@@ -332,11 +334,12 @@ var main;
         }
         check(msg) {
             var message = msg.slice(0), type = message[0], format = this.formats[type];
+            //shift是删除数组第一个元素
             message.shift();
-            if (format) {
+            if (format) { //对比长度,来检查消息?
                 if (message.length !== format.length) {
                     return false;
-                }
+                } //n代表number,s代表string
                 for (var i = 0, n = message.length; i < n; i += 1) {
                     if (format[i] === 'n' && !_.isNumber(message[i])) {
                         return false;
@@ -358,6 +361,10 @@ var main;
         }
     }
     main.FormatChecker = FormatChecker;
+    /**
+     * 检查前端发来的消息是否符合约定好的长度与类型
+     * @param msg
+     */
     function check(msg) {
         return FormatChecker.Inst().check(msg);
     }
@@ -672,38 +679,50 @@ var main;
         });
     }
     main_1.main = main;
+    /** 获取所有世界的玩家分布 */
     function getWorldDistribution(worlds) {
-        var distribution = [];
-        _.each(worlds, function (world) {
+        let distribution = [];
+        for (let index = 0; index < worlds.length; index++) {
+            const world = worlds[index];
             distribution.push(world.playerCount);
-        });
+        }
         return distribution;
     }
-    function 服务器配置加载完成(服务器配置) {
-        let 服务器 = new main_1.socketIO服务器(服务器配置.host, 服务器配置.port);
-        let worlds = [];
-        let lastTotalPlayers = 0;
-        服务器.监听连接(function (connection) {
-            var world, // the one in which the player will be spawned
-            connect = function () {
-                if (world) {
-                    world.connect_callback(new main_1.Player(connection, world));
-                }
-            };
-            // simply fill each world sequentially until they are full
-            world = _.detect(worlds, function (world) {
-                return world.playerCount < 服务器配置.nb_players_per_world;
-            });
-            world.updatePopulation();
-            connect();
-        });
-        服务器.onError(function () {
-            console.error(Array.prototype.join.call(arguments, ", "));
-        });
-        _.each(_.range(服务器配置.nb_worlds), function (i) {
-            var world = new main_1.世界服务器('world' + (i + 1), 服务器配置.nb_players_per_world, 服务器);
-            world.run(服务器配置.map_filepath);
+    function 服务器配置加载完成(config) {
+        //创建服务器
+        let 服务器 = new main_1.SocketIOServer(config.host, config.port);
+        //创建世界服务器
+        let worlds = new Array();
+        for (let index = 1; index <= config.nb_worlds; index++) {
+            //生成世界id
+            let id = 'world' + index;
+            //创建世界
+            let world = new main_1.世界服务器(id, config.nb_players_per_world, 服务器);
+            //世界开始运行
+            world.run(config.map_filepath);
+            //引用存入数组
             worlds.push(world);
+        }
+        //当服务器有新的连接进入
+        服务器.onConnect(function (connection) {
+            // 只需按顺序将玩家放入每个世界服务器,前一个满了就下一个
+            for (let index = 0; index < worlds.length; index++) {
+                //取出一个世界服务器
+                const world = worlds[index];
+                //如果世界玩家数量小于配置中的最大玩家数量
+                if (world.playerCount < config.nb_players_per_world) {
+                    world.updatePopulation();
+                    let player = new main_1.Player(connection, world);
+                    world.connect_callback(player);
+                    return;
+                }
+            }
+            console.log('所有服务器爆满');
+        });
+        //当服务器发生异常
+        服务器.onError(function () {
+            //输出异常日志
+            console.error(Array.prototype.join.call(arguments, ", "));
         });
         服务器.onRequestStatus(function () {
             return JSON.stringify(getWorldDistribution(worlds));
@@ -816,6 +835,7 @@ var main;
             var w = this.zoneWidth, h = this.zoneHeight, gx = Math.floor((x - 1) / w), gy = Math.floor((y - 1) / h);
             return gx + '-' + gy;
         }
+        /** 获取相邻的组位置 */
         getAdjacentGroupPositions(id) {
             var self = this, position = this.GroupIdToGroupPosition(id), x = position.x, y = position.y, 
             // surrounding groups
@@ -833,6 +853,7 @@ var main;
                 return pos.x < 0 || pos.y < 0 || pos.x >= self.groupWidth || pos.y >= self.groupHeight;
             });
         }
+        /** 循环相邻的组 */
         forEachAdjacentGroup(groupId, callback) {
             if (groupId) {
                 _.each(this.getAdjacentGroupPositions(groupId), function (pos) {
@@ -1528,6 +1549,7 @@ var main;
         send(message) {
             this.connection.send(message);
         }
+        /** 广播 */
         broadcast(message, ignoreSelf) {
             if (this.broadcast_callback) {
                 this.broadcast_callback(message, ignoreSelf === undefined ? true : ignoreSelf);
@@ -1556,6 +1578,7 @@ var main;
         onMessage(callback) {
             this.message_callback = callback;
         }
+        /** 监听广播 */
         onBroadcast(callback) {
             this.broadcast_callback = callback;
         }
@@ -1615,10 +1638,12 @@ var main;
         onRequestPosition(callback) {
             this.requestpos_callback = callback;
         }
+        /** 重置超时 */
         resetTimeout() {
             clearTimeout(this.disconnectTimeout);
             this.disconnectTimeout = setTimeout(this.timeout.bind(this), 1000 * 60 * 15); // 15 min.
         }
+        /** 客户端15分钟都没动了,超时 */
         timeout() {
             this.connection.sendUTF8("timeout");
             this.connection.close("Player was idle for too long");
@@ -1911,7 +1936,7 @@ var main;
                 self.updatePopulation();
                 self.pushRelevantEntityListTo(player);
                 var move_callback = function (x, y) {
-                    console.log(player.name + " is moving to (" + x + ", " + y + ").");
+                    console.log("玩家:[" + player.name + "]正在移动到 (" + x + ", " + y + ").");
                     player.forEachAttacker(function (mob) {
                         var target = self.getEntityById(mob.target);
                         if (target) {
@@ -2084,6 +2109,7 @@ var main;
                 console.log("groupId: " + groupId + " is not a valid group");
             }
         }
+        /** 推送到相邻的组 */
         pushToAdjacentGroups(groupId, message, ignoredPlayer) {
             var self = this;
             self.map.forEachAdjacentGroup(groupId, function (id) {
@@ -2340,6 +2366,7 @@ var main;
                 }
             });
         }
+        /** 是否有效位置 */
         isValidPosition(x, y) {
             if (this.map && _.isNumber(x) && _.isNumber(y) && !this.map.isOutOfBounds(x, y) && !this.map.isColliding(x, y)) {
                 return true;
@@ -2552,148 +2579,113 @@ var main;
 })(main || (main = {}));
 var main;
 (function (main) {
-    class 服务器 {
-        constructor(port) {
-            this.所有连接 = {};
-            this._counter = 0;
-            this.port = port;
-        }
-        /** 当有客户端连接上服务器时调用 */
-        监听连接(回调函数) {
-            this.连接回调函数 = 回调函数;
-        }
-        onError(callback) {
-            this.error_callback = callback;
-        }
-        broadcast(message) {
-            throw "Not implemented";
-        }
-        /**
-         * 循环所有连接
-         * @param callback
-         */
-        forEachConnection(callback) {
-            let object = this.所有连接;
-            for (const key in object) {
-                if (object.hasOwnProperty(key)) {
-                    const element = object[key];
-                    callback(element);
-                }
-            }
-        }
-        /**
-         * 添加一个连接
-         * @param connection
-         */
-        addConnection(connection) {
-            this.所有连接[connection.id] = connection;
-        }
-        /**
-         * 删除一个连接
-         * @param id
-         */
-        removeConnection(id) {
-            delete this.所有连接[id];
-        }
-        /**
-         * 获取一个连接
-         * @param id
-         */
-        getConnection(id) {
-            return this.所有连接[id];
-        }
-        /**
-         * 获取连接数量
-         */
-        connectionsCount() {
-            return Object.keys(this.所有连接).length;
-        }
-    }
-    class 连接 {
+    /** Connection */
+    class Connection {
         constructor(id, connection, server) {
             this._connection = connection;
-            this._server = server;
+            this.server = server;
             this.id = id;
         }
+        /** 当连接关闭 */
         onClose(callback) {
             this.close_callback = callback;
         }
+        /** 当有客户端的消息 */
         listen(callback) {
             this.listen_callback = callback;
         }
-        broadcast(message) {
-            throw "Not implemented";
-        }
-        send(message) {
-            throw "Not implemented";
-        }
-        sendUTF8(data) {
-            throw "Not implemented";
-        }
+        /** 广播消息 */
+        broadcast(message) { }
+        /** 发送消息 */
+        send(message) { }
+        /** 发送UTF8字符串 */
+        sendUTF8(data) { }
+        /** 关闭连接 */
         close(logError) {
-            console.log("Closing connection to " + this._connection.remoteAddress + ". Error: " + logError);
+            console.log("正在关闭 连接 to " + this._connection.remoteAddress + ". 异常: " + logError);
             this._connection.close();
         }
     }
-    class socketIO服务器 extends 服务器 {
-        constructor(IP, 端口) {
-            super(端口);
-            let self = this;
-            self.host = IP;
-            self.port = 端口;
-            // var app = require('express')()
-            // var http = require('http').Server(app)
-            // self.io = require('socket.io')(http)
-            let { http, io } = getIO();
-            self.io = io;
-            self.io.on('connection', function (connection) {
-                console.log('一个用户连接上了');
-                connection.remoteAddress = connection.handshake.address.address;
-                var c = new socketIO连接(self._createId(), connection, self);
-                if (self.连接回调函数) {
-                    self.连接回调函数(c);
+    main.Connection = Connection;
+})(main || (main = {}));
+var main;
+(function (main) {
+    /** 服务器 */
+    class Server {
+        constructor(port) {
+            /** 所有连接 */
+            this.connections = {};
+            /** 计数器 */
+            this.counter = 0;
+            this.port = port;
+        }
+        /** 监听有玩家连接上服务器 */
+        onConnect(callback) {
+            this.connection_callback = callback;
+        }
+        /** 监听异常 */
+        onError(callback) {
+            this.error_callback = callback;
+        }
+        /** 广播消息 */
+        broadcast(message) { }
+        /** 循环所有连接 */
+        forEachConnection(callback) {
+            let object = this.connections;
+            for (const key in object) {
+                if (object.hasOwnProperty(key)) {
+                    const connection = object[key];
+                    callback(connection);
                 }
-                self.addConnection(c);
-            });
-            self.io.on('error', function (err) {
-                console.log(err.stack);
-                self.error_callback();
-            });
-            http.listen(self.port, function () {
-                console.log('监听 on *:' + self.port);
-            });
+            }
         }
-        _createId() {
-            return '5' + main.Utils.random(99) + '' + (this._counter++);
+        /** 添加一个连接 */
+        addConnection(connection) {
+            this.connections[connection.id] = connection;
         }
-        broadcast(message) {
-            this.io.emit("message", message);
+        /** 删除一个连接 */
+        removeConnection(id) {
+            delete this.connections[id];
         }
-        onRequestStatus(status_callback) {
-            this.status_callback = status_callback;
+        /** 获取一个连接 */
+        getConnection(id) {
+            return this.connections[id];
+        }
+        /** 获取连接数量 */
+        connectionsCount() {
+            return Object.keys(this.connections).length;
         }
     }
-    main.socketIO服务器 = socketIO服务器;
-    class socketIO连接 extends 连接 {
+    main.Server = Server;
+})(main || (main = {}));
+var main;
+(function (main) {
+    /**
+     * `Socket.io 连接封装`
+     * 每个连接对应一个玩家
+     */
+    class SocketIOConnection extends main.Connection {
         constructor(id, connection, server) {
             super(id, connection, server);
-            var self = this;
+            let self = this;
             // HANDLE DISPATCHER IN HERE
             connection.on("dispatch", function (message) {
                 console.log("收到对调度系统的请求");
                 self._connection.emit("dispatched", { "status": "OK", host: server.host, port: server.port });
             });
             connection.on("message", function (message) {
-                console.log("收到: " + message);
-                if (self.listen_callback)
+                //当连接收到消息时,调用消息回调
+                if (self.listen_callback) {
                     self.listen_callback(message);
+                }
             });
             connection.on("disconnect", function () {
+                //当连接关闭时,调用关闭回调
                 if (self.close_callback) {
                     self.close_callback();
                 }
-                //delete self._server.removeConnection(self.id);
-                self._server.removeConnection(self.id);
+                //从连接所在服务器删除连接
+                self.server.removeConnection(self.id);
             });
         }
         broadcast(message) {
@@ -2706,10 +2698,52 @@ var main;
             this.send(data);
         }
         close(logError) {
-            console.log("Closing connection to socket" + ". 异常: " + logError);
+            console.log("正在关闭与socket的连接" + ". 异常: " + logError);
             this._connection.disconnect();
         }
     }
-    main.socketIO连接 = socketIO连接;
+    main.SocketIOConnection = SocketIOConnection;
+})(main || (main = {}));
+var main;
+(function (main) {
+    /**
+     * `socket.io 服务器`
+     * 一个服务器上会有多个连接
+     **/
+    class SocketIOServer extends main.Server {
+        constructor(host, port) {
+            super(port);
+            let { http, io } = getIO();
+            let self = this;
+            self.host = host;
+            self.io = io;
+            self.io.on('connection', function (connection) {
+                console.log('一个用户连接上了');
+                connection.remoteAddress = connection.handshake.address.address;
+                let socketIOConnection = new main.SocketIOConnection(self._createId(), connection, self);
+                if (self.connection_callback) {
+                    self.connection_callback(socketIOConnection);
+                }
+                self.addConnection(socketIOConnection);
+            });
+            self.io.on('error', function (err) {
+                console.log(err.stack);
+                self.error_callback();
+            });
+            http.listen(self.port, function () {
+                console.log('监听端口:' + self.port);
+            });
+        }
+        _createId() {
+            return '5' + main.Utils.random(99) + '' + (this.counter++);
+        }
+        broadcast(message) {
+            this.io.emit("message", message);
+        }
+        onRequestStatus(status_callback) {
+            this.status_callback = status_callback;
+        }
+    }
+    main.SocketIOServer = SocketIOServer;
 })(main || (main = {}));
 //# sourceMappingURL=bundle.js.map

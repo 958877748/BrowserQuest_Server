@@ -1,7 +1,8 @@
 namespace main{
     export class Player extends Character{
-        server: any;
-        connection: any;
+        group:string
+        server: 世界服务器;
+        connection: SocketIOConnection;
         hasEnteredGame: boolean;
         isDead: boolean;
         haters: {};
@@ -31,7 +32,8 @@ namespace main{
         broadcastzone_callback: any;
         orient_callback: any;
         requestpos_callback: any;
-        constructor (connection, worldServer) {
+        
+        constructor (connection:SocketIOConnection, worldServer:世界服务器) {
             super(connection.id, "player", Types.Entities.WARRIOR, 0, 0);
             var self = this;
             
@@ -51,7 +53,7 @@ namespace main{
     
                 var action = parseInt(message[0]);
                 
-                console.log("Received: " + message);
+                console.log("收到客户端消息: " + message);
                 if(!check(message)) {
                     self.connection.close("Invalid "+Types.getMessageTypeAsString(action)+" message format: "+message);
                     return;
@@ -288,7 +290,7 @@ namespace main{
         send (message) {
             this.connection.send(message);
         }
-        
+        /** 广播 */
         broadcast (message, ignoreSelf?) {
             if(this.broadcast_callback) {
                 this.broadcast_callback(message, ignoreSelf === undefined ? true : ignoreSelf);
@@ -324,7 +326,7 @@ namespace main{
         onMessage (callback) {
             this.message_callback = callback;
         }
-        
+        /** 监听广播 */
         onBroadcast (callback) {
             this.broadcast_callback = callback;
         }
@@ -395,15 +397,17 @@ namespace main{
         onRequestPosition (callback) {
             this.requestpos_callback = callback;
         }
-        
+        /** 重置超时 */
         resetTimeout () {
             clearTimeout(this.disconnectTimeout);
             this.disconnectTimeout = setTimeout(this.timeout.bind(this), 1000 * 60 * 15); // 15 min.
         }
-        
+        /** 客户端15分钟都没动了,超时 */
         timeout () {
-            this.connection.sendUTF8("timeout");
-            this.connection.close("Player was idle for too long");
+            //发送 timeout 字段
+            this.connection.sendUTF8("timeout")
+            //关闭与玩家的连接
+            this.connection.close("玩家闲置了15分钟");
         }
     }
 }

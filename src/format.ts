@@ -32,13 +32,13 @@ namespace main{
             var message = msg.slice(0),
                 type = message[0],
                 format = this.formats[type];
-            
+            //shift是删除数组第一个元素
             message.shift();
             
-            if(format) {    
+            if(format) {    //对比长度,来检查消息?
                 if(message.length !== format.length) {
                     return false;
-                }
+                }//n代表number,s代表string
                 for(var i = 0, n = message.length; i < n; i += 1) {
                     if(format[i] === 'n' && !_.isNumber(message[i])) {
                         return false;
@@ -59,7 +59,11 @@ namespace main{
             }
         }
     }
-    export function check(msg:any){
+    /**
+     * 检查前端发来的消息是否符合约定好的长度与类型
+     * @param msg 
+     */
+    export function check(msg:any):boolean{
         return FormatChecker.Inst().check(msg)
     }
 }

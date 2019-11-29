@@ -54,7 +54,7 @@ namespace main{
         setTarget (entity) {
             this.target = entity.id;
         }
-        
+        /** 清除当前目标 */
         clearTarget () {
             this.target = null;
         }
@@ -87,7 +87,7 @@ namespace main{
                 console.log(this.id +" REMOVED ATTACKER "+ entity.id)
             }
         }
-        
+        /** 遍历攻击者 */
         forEachAttacker (callback) {
             for(var id in this.attackers) {
                 callback(this.attackers[id]);

@@ -5,7 +5,7 @@ namespace main {
             return sanitizer.escape(sanitizer.sanitize(string));
         }
 
-        export function random(range) {
+        export function random(range:number) {
             return Math.floor(Math.random() * range)
         }
 

@@ -142,7 +142,7 @@ namespace main{
 
             return gx+'-'+gy;
         }
-        
+        /** 获取相邻的组位置 */
         getAdjacentGroupPositions (id) {
             var self = this,
                 position = this.GroupIdToGroupPosition(id),
@@ -165,7 +165,7 @@ namespace main{
                 return pos.x < 0 || pos.y < 0 || pos.x >= self.groupWidth || pos.y >= self.groupHeight;
             });
         }
-        
+        /** 循环相邻的组 */
         forEachAdjacentGroup (groupId, callback) {
             if(groupId) {
                 _.each(this.getAdjacentGroupPositions(groupId), function(pos) {

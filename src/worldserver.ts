@@ -4,7 +4,7 @@ namespace main{
         maxPlayers: any;
         server: any;
         ups: number;
-        map: any;
+        map: Map;
         entities: {};
         players: {};
         mobs: {};
@@ -27,7 +27,7 @@ namespace main{
         connect_callback: any;
         enter_callback: any;
         attack_callback: any;
-        constructor (id, maxPlayers, websocketServer) {
+        constructor (id:string, maxPlayers, websocketServer) {
             var self = this;
 
             this.id = id;
@@ -66,8 +66,8 @@ namespace main{
                 });
             });
             
-            this.onPlayerEnter(function(player) {
-                console.log(player.name + " has joined "+ self.id);
+            this.onPlayerEnter(function(player:Player) {
+                console.log("玩家["+player.name + "] 已加入 世界id:"+ self.id);
                 
                 if(!player.hasEnteredGame) {
                     self.incrementPlayerCount();
@@ -81,7 +81,7 @@ namespace main{
                 self.pushRelevantEntityListTo(player);
         
                 var move_callback = function(x, y) {
-                    console.log(player.name + " is moving to (" + x + ", " + y + ").");
+                    console.log("玩家:["+player.name + "]正在移动到 (" + x + ", " + y + ").");
                     
                     player.forEachAttacker(function(mob) {
                         var target = self.getEntityById(mob.target);
@@ -119,19 +119,20 @@ namespace main{
                 });
         
                 player.onExit(function() {
-                    console.log(player.name + " has left the game.");
-                    self.removePlayer(player);
-                    self.decrementPlayerCount();
+                    console.log("玩家:["+player.name + "]已经离开了游戏。")
+
+                    self.removePlayer(player)
+                    self.decrementPlayerCount()
                     
                     if(self.removed_callback) {
-                        self.removed_callback();
+                        self.removed_callback()
                     }
-                });
+                })
                 
                 if(self.added_callback) {
-                    self.added_callback();
+                    self.added_callback()
                 }
-            });
+            })
             
             // Called when an entity is attacked by another entity
             this.onEntityAttack(function(attacker) {
@@ -290,7 +291,7 @@ namespace main{
                 console.log("groupId: "+groupId+" is not a valid group");
             }
         }
-        
+        /** 推送到相邻的组 */
         pushToAdjacentGroups (groupId, message, ignoredPlayer?) {
             var self = this;
             self.map.forEachAdjacentGroup(groupId, function(id) {
@@ -532,7 +533,7 @@ namespace main{
             }
         }
         
-        handleHurtEntity (entity, attacker, damage) {
+        handleHurtEntity (entity, attacker, damage?) {
             var self = this;
             
             if(entity.type === 'player') {
@@ -605,7 +606,7 @@ namespace main{
                 }
             });
         }
-
+        /** 是否有效位置 */
         isValidPosition (x, y) {
             if(this.map && _.isNumber(x) && _.isNumber(y) && !this.map.isOutOfBounds(x, y) && !this.map.isColliding(x, y)) {
                 return true;
@@ -861,7 +862,7 @@ namespace main{
         updatePopulation (totalPlayers?) {
             totalPlayers = totalPlayers ? totalPlayers : this.server.connectionsCount();
             
-            console.log("Updating population: " + this.playerCount + " " + totalPlayers)
+            console.log("服务器上玩家数/玩家峰值: " + this.playerCount + " / " + totalPlayers)
             this.pushBroadcast(new Messages.Population(this.playerCount, totalPlayers));
         }
     }
